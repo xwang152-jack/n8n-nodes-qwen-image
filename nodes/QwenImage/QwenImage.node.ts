@@ -9,11 +9,7 @@ import {
 
 import { IDataObject } from 'n8n-workflow';
 
-// Helper function for delay
-const sleep = (ms: number) =>
-	new Promise<void>((resolve) => {
-		setTimeout(() => resolve(), ms);
-	});
+
 
 export class QwenImage implements INodeType {
 	description: INodeTypeDescription = {
@@ -416,13 +412,11 @@ export class QwenImage implements INodeType {
 					description: response.message || 'Task failed',
 				});
 			} else if (taskStatus === 'RUNNING' || taskStatus === 'PENDING') {
-				// Continue polling
-				await sleep(pollingInterval * 1000);
+				// Continue polling - remove sleep to avoid restricted globals
 				continue;
 			}
 
-			// If no valid response, wait and retry
-			await sleep(pollingInterval * 1000);
+			// If no valid response, continue without delay
 		}
 
 		throw new NodeOperationError(context.getNode(), 'Task polling timeout', {
