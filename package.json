@@ -1,19 +1,23 @@
 {
-  "name": "n8n-nodes-<...>",
+  "name": "n8n-nodes-qwen-image",
   "version": "0.1.0",
-  "description": "",
+  "description": "n8n community node for Qwen Image generation using ModelScope API",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "qwen",
+    "image-generation",
+    "ai",
+    "modelscope"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/xwang152-jack/n8n-nodes-qwen-image",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "xwang152-jack",
+    "email": "xwang152@163.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/xwang152-jack/n8n-nodes-qwen-image.git"
   },
   "engines": {
     "node": ">=20.15"
@@ -33,15 +37,14 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/ExampleCredentialsApi.credentials.js",
-      "dist/credentials/HttpBinApi.credentials.js"
+      "./dist/credentials/ModelScopeApi.credentials"
     ],
     "nodes": [
-      "dist/nodes/ExampleNode/ExampleNode.node.js",
-      "dist/nodes/HttpBin/HttpBin.node.js"
+      "./dist/nodes/QwenImage/QwenImage.node"
     ]
   },
   "devDependencies": {
+    "@types/node": "^24.3.1",
     "@typescript-eslint/parser": "~8.32.0",
     "eslint": "^8.57.0",
     "eslint-plugin-n8n-nodes-base": "^1.16.3",
@@ -51,5 +54,11 @@
   },
   "peerDependencies": {
     "n8n-workflow": "*"
+  },
+  "overrides": {
+    "form-data": "4.0.4"
+  },
+  "dependencies": {
+    "axios": "^1.11.0"
   }
 }

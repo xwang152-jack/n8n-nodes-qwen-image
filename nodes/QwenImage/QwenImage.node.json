@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-qwen-image.QwenImage",
+	"nodeVersion": "1.0",
+	"codex": {
+		"categories": ["AI"],
+		"subcategories": {
+			"AI": ["Image Generation"]
+		},
+		"resources": {
+			"primaryDocumentation": [
+				{
+					"url": "https://modelscope.cn"
+				}
+			],
+			"credentialDocumentation": [
+				{
+					"url": "https://modelscope.cn"
+				}
+			]
+		}
+	}
+}
