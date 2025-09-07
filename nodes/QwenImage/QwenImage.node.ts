@@ -8,8 +8,8 @@ import {
 } from 'n8n-workflow';
 
 import { IDataObject } from 'n8n-workflow';
-
-
+import { QwenImageAPI } from './resource/QwenImageAPI';
+import { ImageGenerationParams, ImageGenerationOptions } from '../help/type';
 
 export class QwenImage implements INodeType {
 	description: INodeTypeDescription = {
@@ -17,9 +17,10 @@ export class QwenImage implements INodeType {
 		name: 'qwenImage',
 		icon: 'file:QwenImage.svg',
 		group: ['transform'],
-		version: 1,
+		version: 2,
 		subtitle: '={{$parameter["operation"]}}',
 		description: 'Generate images using Qwen Image model from ModelScope',
+		usableAsTool: true,
 		defaults: {
 			name: 'Qwen Image',
 		},
@@ -185,25 +186,15 @@ export class QwenImage implements INodeType {
 		const apiKey = credentials.apiKey as string;
 		const baseUrl = credentials.baseUrl as string;
 
-		// Validate credentials
-		if (!apiKey || apiKey.trim() === '') {
-			throw new NodeOperationError(this.getNode(), 'API Key is required', {
-				description: 'Please configure your ModelScope API Key in the credentials',
-			});
-		}
-
-		if (!baseUrl || baseUrl.trim() === '') {
-			throw new NodeOperationError(this.getNode(), 'Base URL is required', {
-				description: 'Please configure your ModelScope API Base URL in the credentials',
-			});
-		}
+		// 创建API实例
+		const qwenAPI = new QwenImageAPI({ apiKey, baseUrl });
 
 		for (let i = 0; i < items.length; i++) {
 			try {
 				if (operation === 'generate') {
 					const prompt = this.getNodeParameter('prompt', i) as string;
 					const negativePrompt = this.getNodeParameter('negativePrompt', i, '') as string;
-					const size = this.getNodeParameter('size', i) as string;
+					const size = this.getNodeParameter('size', i) as '1024x1024' | '720x1280' | '1280x720';
 					const pollingInterval = this.getNodeParameter('pollingInterval', i, 5) as number;
 					const maxPollingTime = this.getNodeParameter('maxPollingTime', i, 300) as number;
 					const additionalOptions = this.getNodeParameter(
@@ -212,29 +203,26 @@ export class QwenImage implements INodeType {
 						{},
 					) as IDataObject;
 
-					// Submit task
-					const taskId = await QwenImage.submitTask(
-						this,
-						apiKey,
-						baseUrl,
+					// 构建参数
+					const params: ImageGenerationParams = {
 						prompt,
-						negativePrompt,
+						negativePrompt: negativePrompt || undefined,
 						size,
-						additionalOptions,
-					);
+						seed: additionalOptions.seed as number,
+						steps: additionalOptions.steps as number,
+						cfgScale: additionalOptions.cfgScale as number,
+					};
 
-					// Poll for result
-					const result = await QwenImage.pollTaskResult(
-						this,
-						apiKey,
-						baseUrl,
-						taskId,
+					const options: ImageGenerationOptions = {
 						pollingInterval,
 						maxPollingTime,
-					);
+					};
+
+					// 调用核心API
+					const result = await qwenAPI.generateImage(params, options);
 
 					const jsonData: IDataObject = {
-						taskId: taskId,
+						taskId: result.taskId,
 						status: result.status,
 						imageUrl: result.imageUrl,
 						prompt: prompt,
@@ -251,15 +239,15 @@ export class QwenImage implements INodeType {
 						binary: result.imageData
 							? {
 									data: {
-										data: (result.imageData as Buffer).toString('base64'),
+										data: result.imageData.toString('base64'),
 										mimeType: 'image/png',
-										fileName: `qwen-image-${taskId}.png`,
+										fileName: `qwen-image-${result.taskId}.png`,
 									},
 								}
 							: undefined,
 					});
 				}
-			} catch (error) {
+			} catch (error: any) {
 				if (this.continueOnFail()) {
 					returnData.push({
 						json: {
@@ -268,159 +256,12 @@ export class QwenImage implements INodeType {
 						},
 					});
 				} else {
-					throw error;
+					// 将普通错误转换为NodeOperationError
+					throw new NodeOperationError(this.getNode(), error.message);
 				}
 			}
 		}
 
 		return [returnData];
-	}
-
-	private static async submitTask(
-		context: IExecuteFunctions,
-		apiKey: string,
-		baseUrl: string,
-		prompt: string,
-		negativePrompt?: string,
-		size?: string,
-		additionalOptions?: IDataObject,
-	): Promise<string> {
-		const requestBody: any = {
-			model: 'Qwen/Qwen-Image',
-			prompt: prompt,
-		};
-
-		// Add optional parameters if provided
-		if (negativePrompt) {
-			requestBody.negative_prompt = negativePrompt;
-		}
-		if (size) {
-			requestBody.size = size;
-		}
-		if (additionalOptions?.seed && additionalOptions.seed !== -1) {
-			requestBody.seed = additionalOptions.seed;
-		}
-		if (additionalOptions?.steps) {
-			requestBody.steps = additionalOptions.steps;
-		}
-		if (additionalOptions?.cfgScale) {
-			requestBody.cfg_scale = additionalOptions.cfgScale;
-		}
-
-		let response;
-		try {
-			response = await context.helpers.request({
-				method: 'POST',
-				uri: `${baseUrl}v1/images/generations`,
-				headers: {
-					Authorization: `Bearer ${apiKey}`,
-					'Content-Type': 'application/json',
-					'X-ModelScope-Async-Mode': 'true',
-				},
-				body: requestBody,
-				json: true,
-			});
-		} catch (error: any) {
-			if (error.response?.status === 401) {
-				throw new NodeOperationError(context.getNode(), 'Authentication failed', {
-					description: 'Invalid API Key. Please check your ModelScope API credentials.',
-				});
-			} else if (error.response?.status === 403) {
-				throw new NodeOperationError(context.getNode(), 'Access forbidden', {
-					description: 'Your API Key does not have permission to access this resource.',
-				});
-			} else if (error.response?.status === 429) {
-				throw new NodeOperationError(context.getNode(), 'Rate limit exceeded', {
-					description: 'Too many requests. Please wait and try again later.',
-				});
-			} else {
-				throw new NodeOperationError(context.getNode(), 'API request failed', {
-					description: error.message || 'Unknown error occurred during API request',
-				});
-			}
-		}
-
-		if (response.task_id) {
-			return response.task_id;
-		} else {
-			throw new NodeOperationError(context.getNode(), 'Failed to submit task', {
-				description: response.message || 'Unknown error during task submission',
-			});
-		}
-	}
-
-	private static async pollTaskResult(
-		context: IExecuteFunctions,
-		apiKey: string,
-		baseUrl: string,
-		taskId: string,
-		pollingInterval: number,
-		maxPollingTime: number,
-	): Promise<IDataObject> {
-		const startTime = Date.now();
-		const maxTime = maxPollingTime * 1000;
-
-		while (Date.now() - startTime < maxTime) {
-			let response;
-		try {
-			response = await context.helpers.request({
-				method: 'GET',
-				uri: `${baseUrl}v1/tasks/${taskId}`,
-				headers: {
-					Authorization: `Bearer ${apiKey}`,
-					'X-ModelScope-Task-Type': 'image_generation',
-				},
-				json: true,
-			});
-		} catch (error: any) {
-			if (error.response?.status === 401) {
-				throw new NodeOperationError(context.getNode(), 'Authentication failed during polling', {
-					description: 'Invalid API Key. Please check your ModelScope API credentials.',
-				});
-			} else if (error.response?.status === 404) {
-				throw new NodeOperationError(context.getNode(), 'Task not found', {
-					description: `Task ${taskId} not found. It may have expired or been deleted.`,
-				});
-			} else {
-				throw new NodeOperationError(context.getNode(), 'Polling request failed', {
-					description: error.message || 'Unknown error occurred during task polling',
-				});
-			}
-		}
-
-			const taskStatus = response.task_status;
-
-			if (taskStatus === 'SUCCEED') {
-				const imageUrl = response.output_images[0];
-				const imageData = await context.helpers.request({
-					method: 'GET',
-					uri: imageUrl,
-					encoding: null,
-				});
-
-				return {
-					status: 'succeeded',
-					imageUrl: imageUrl,
-					imageData: imageData,
-					metadata: {
-						task_status: taskStatus,
-						task_id: taskId,
-					},
-				};
-			} else if (taskStatus === 'FAILED') {
-				throw new NodeOperationError(context.getNode(), 'Image generation failed', {
-					description: response.message || 'Task failed',
-				});
-			} else if (taskStatus === 'RUNNING' || taskStatus === 'PENDING') {
-				// Continue polling - remove sleep to avoid restricted globals
-				continue;
-			}
-
-			// If no valid response, continue without delay
-		}
-
-		throw new NodeOperationError(context.getNode(), 'Task polling timeout', {
-			description: `Task did not complete within ${maxPollingTime} seconds`,
-		});
 	}
 }

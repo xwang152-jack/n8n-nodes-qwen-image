@@ -1,6 +1,6 @@
 # Release Notes
 
-## v0.1.1 (2025-01-07)
+## v0.1.1 (2025-09-07)
 
 ### 🐛 Bug Fixes
 - Fixed ESLint violations by removing setTimeout usage to comply with n8n community package requirements
@@ -17,7 +17,7 @@
 
 ---
 
-## v0.1.0 (2025-01-07)
+## v0.1.0 (2025-09-07)
 
 ### 🎉 Initial Release
 - First stable release of n8n-nodes-qwen-image

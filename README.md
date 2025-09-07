@@ -1,13 +1,390 @@
 # n8n-nodes-qwen-image
 
-[![npm version](https://badge.fury.io/js/n8n-nodes-qwen-image.svg)](https://badge.fury.io/js/n8n-nodes-qwen-image)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+🎨 **Dual-Purpose Image Generation Package**: Use as both an n8n community node and an AI tool for generating high-quality images using Qwen Image model from ModelScope.
 
-This is an n8n community node that integrates Qwen Image generation capabilities into your n8n workflows.
+## ✨ Features
 
-🎨 **Qwen Image** is a state-of-the-art AI image generation model developed by Alibaba Cloud, capable of creating high-quality, photorealistic images from text descriptions using the ModelScope API.
+- 🔄 **Dual Functionality**: Works as both n8n node and AI tool calling interface
+- 🎨 **High-Quality Image Generation**: Powered by Qwen Image model from ModelScope
+- 📝 **Flexible Prompting**: Support for positive and negative prompts
+- 📐 **Multiple Sizes**: Configurable image dimensions (1024x1024, 720x1280, 1280x720)
+- ⚙️ **Advanced Controls**: Seed, steps, CFG scale parameters
+- 🔄 **Smart Polling**: Automatic task status checking with configurable intervals
+- 🛡️ **Robust Error Handling**: Built-in retry mechanisms and comprehensive error handling
+- 🔌 **AI Framework Compatible**: Supports OpenAI Functions, LangChain, and other AI frameworks
 
-🔄 **[n8n](https://n8n.io/)** is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that allows you to connect different services and automate tasks.
+## 📦 Installation
+
+### For n8n Usage
+
+#### Community Nodes (Recommended)
+
+1. Go to **Settings > Community Nodes**
+2. Select **Install**
+3. Enter `n8n-nodes-qwen-image`
+4. Agree to the risks of using community nodes
+5. Select **Install**
+
+After installation, restart n8n to see the new nodes.
+
+#### Manual Installation
+
+```bash
+npm install n8n-nodes-qwen-image
+```
+
+For Docker deployments:
+
+```dockerfile
+RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-qwen-image
+```
+
+### For AI Tool Usage
+
+```bash
+npm install n8n-nodes-qwen-image
+```
+
+## 🚀 Usage
+
+### 🔧 As n8n Node
+
+1. Add the **Qwen Image** node to your workflow
+2. Configure API credentials (ModelScope API key)
+3. Set generation parameters
+4. Connect to other nodes in your workflow
+
+#### Example n8n Workflow
+
+```json
+{
+  "nodes": [
+    {
+      "name": "Generate Image",
+      "type": "n8n-nodes-qwen-image.qwenImage",
+      "parameters": {
+        "prompt": "A serene mountain landscape at sunset, digital art",
+        "negativePrompt": "blurry, low quality, distorted",
+        "size": "1024x1024",
+        "steps": 25,
+        "cfgScale": 7.5
+      }
+    }
+  ]
+}
+```
+
+### 🤖 As AI Tool
+
+#### Basic Usage
+
+```typescript
+import { createQwenImageTool, generateImage } from 'n8n-nodes-qwen-image';
+
+// Method 1: Using tool instance
+const tool = createQwenImageTool({
+  apiKey: 'your-modelscope-api-key',
+  baseUrl: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis'
+});
+
+const result = await tool.call({
+  prompt: 'A beautiful sunset over mountains',
+  size: '1024x1024',
+  steps: 20
+});
+
+console.log(result);
+// {
+//   success: true,
+//   data: {
+//     task_id: 'xxx',
+//     status: 'SUCCEEDED',
+//     image_url: 'https://...',
+//     prompt: 'A beautiful sunset over mountains',
+//     ...
+//   }
+// }
+
+// Method 2: Direct function call
+const quickResult = await generateImage(
+  { apiKey: 'your-api-key', baseUrl: 'https://...' },
+  'A cyberpunk cityscape at night',
+  { size: '1280x720', steps: 30 }
+);
+```
+
+#### OpenAI Functions Integration
+
+```typescript
+import { QWEN_IMAGE_TOOL_FUNCTION, createQwenImageTool } from 'n8n-nodes-qwen-image';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: 'your-openai-key' });
+const qwenTool = createQwenImageTool({ apiKey: 'your-modelscope-key' });
+
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Generate an image of a sunset' }],
+  tools: [{ type: 'function', function: QWEN_IMAGE_TOOL_FUNCTION }],
+  tool_choice: 'auto'
+});
+
+// Handle tool calls
+if (response.choices[0].message.tool_calls) {
+  for (const toolCall of response.choices[0].message.tool_calls) {
+    if (toolCall.function.name === 'generate_qwen_image') {
+      const args = JSON.parse(toolCall.function.arguments);
+      const result = await qwenTool.call(args);
+      console.log('Generated image:', result);
+    }
+  }
+}
+```
+
+#### LangChain Integration
+
+```typescript
+import { QwenImageTool, QWEN_IMAGE_TOOL_FUNCTION } from 'n8n-nodes-qwen-image';
+import { DynamicTool } from 'langchain/tools';
+
+const qwenImageTool = new DynamicTool({
+  name: QWEN_IMAGE_TOOL_FUNCTION.name,
+  description: QWEN_IMAGE_TOOL_FUNCTION.description,
+  func: async (input: string) => {
+    const tool = new QwenImageTool({ apiKey: 'your-api-key' });
+    const args = JSON.parse(input);
+    const result = await tool.call(args);
+    return JSON.stringify(result);
+  }
+});
+
+// Use with LangChain agents
+const tools = [qwenImageTool];
+// ... rest of your LangChain setup
+```
+
+## ⚙️ Configuration
+
+### API Credentials
+
+You need ModelScope API credentials:
+
+1. **API Key**: Your ModelScope API key (required)
+2. **Base URL**: API endpoint (optional, has default)
+
+### Getting ModelScope API Key
+
+1. Visit [ModelScope](https://modelscope.cn/)
+2. Sign up or log in
+3. Go to profile settings
+4. Generate an API key
+5. Copy for use in your application
+
+## 📋 Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `prompt` | string | ✅ | - | Text description of the image to generate |
+| `negative_prompt` | string | ❌ | - | What to avoid in the image |
+| `size` | string | ❌ | '1024x1024' | Image dimensions (1024x1024, 720x1280, 1280x720) |
+| `seed` | integer | ❌ | -1 | Random seed for reproducible results (-1 for random) |
+| `steps` | integer | ❌ | 20 | Denoising steps (1-50) |
+| `cfg_scale` | number | ❌ | 7 | Classifier-free guidance scale (1-20) |
+| `polling_interval` | integer | ❌ | 5 | Time between status checks (1-60 seconds) |
+| `max_polling_time` | integer | ❌ | 300 | Maximum wait time (60-1800 seconds) |
+
+## 📤 Output
+
+### n8n Node Output
+
+```json
+{
+  "taskId": "unique-task-identifier",
+  "status": "SUCCEEDED",
+  "imageUrl": "https://generated-image-url",
+  "imageData": "base64-encoded-image-data",
+  "metadata": {
+    "prompt": "original-prompt",
+    "size": "1024x1024",
+    "steps": 20,
+    "cfgScale": 7
+  }
+}
+```
+
+### AI Tool Output
+
+```typescript
+interface ToolCallResult {
+  success: boolean;
+  data?: {
+    task_id: string;
+    status: string;
+    image_url: string;
+    prompt: string;
+    negative_prompt?: string;
+    size: string;
+    seed: number;
+    steps: number;
+    cfg_scale: number;
+    metadata: any;
+  };
+  error?: string;
+}
+```
+
+## 🔧 Advanced Usage
+
+### Custom Configuration
+
+```typescript
+import { QwenImageAPI } from 'n8n-nodes-qwen-image/core';
+
+// Direct API usage
+const api = new QwenImageAPI({
+  apiKey: 'your-key',
+  baseUrl: 'custom-endpoint'
+});
+
+const result = await api.generateImage(
+  {
+    prompt: 'A futuristic robot',
+    size: '1024x1024',
+    steps: 30,
+    cfgScale: 8
+  },
+  {
+    pollingInterval: 3,
+    maxPollingTime: 600
+  }
+);
+```
+
+### Tool Metadata
+
+```typescript
+import { QWEN_IMAGE_TOOL_METADATA } from 'n8n-nodes-qwen-image';
+
+console.log(QWEN_IMAGE_TOOL_METADATA);
+// {
+//   name: 'qwen-image-generator',
+//   version: '2.0.0',
+//   description: 'AI tool for generating images using Qwen Image model',
+//   capabilities: ['text-to-image', 'negative-prompting', ...],
+//   supported_sizes: ['1024x1024', '720x1280', '1280x720'],
+//   ...
+// }
+```
+
+## 🛠️ Error Handling
+
+Both n8n node and AI tool include comprehensive error handling:
+
+- ✅ API authentication errors
+- ✅ Network connectivity issues
+- ✅ Task timeout scenarios
+- ✅ Invalid parameter validation
+- ✅ Rate limiting responses
+- ✅ Malformed API responses
+
+### Error Examples
+
+```typescript
+// AI Tool error handling
+const result = await tool.call({ prompt: '' }); // Invalid prompt
+console.log(result);
+// {
+//   success: false,
+//   error: 'Missing or invalid prompt parameter'
+// }
+
+// API error handling
+try {
+  const result = await api.generateImage(params, options);
+} catch (error) {
+  console.error('Generation failed:', error.message);
+}
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **Authentication Failed**
+   - ✅ Verify API key is correct
+   - ✅ Check ModelScope account credits
+   - ✅ Ensure API key has proper permissions
+
+2. **Task Timeout**
+   - ✅ Increase `max_polling_time` parameter
+   - ✅ Check ModelScope service status
+   - ✅ Try with simpler prompts
+
+3. **Invalid Parameters**
+   - ✅ Ensure prompt is not empty
+   - ✅ Verify size is supported (1024x1024, 720x1280, 1280x720)
+   - ✅ Check numeric parameters are within valid ranges
+
+4. **Import Issues**
+   - ✅ Ensure package is properly installed
+   - ✅ Check TypeScript configuration
+   - ✅ Verify import paths are correct
+
+## 📚 API Reference
+
+### Core Classes
+
+- `QwenImageAPI`: Core API client
+- `QwenImageTool`: AI tool wrapper
+- `QwenImage`: n8n node implementation
+
+### Utility Functions
+
+- `createQwenImageTool(config)`: Create tool instance
+- `generateImage(config, prompt, options)`: Quick generation
+
+### Constants
+
+- `QWEN_IMAGE_TOOL_FUNCTION`: OpenAI Functions schema
+- `QWEN_IMAGE_TOOL_METADATA`: Tool metadata
+- `VERSION`: Package version
+
+## 📄 License
+
+[MIT](https://github.com/xwang152-jack/n8n-nodes-qwen-image/blob/main/LICENSE)
+
+## 🤝 Support
+
+If you have any issues or questions:
+
+- 🐛 [Open an issue](https://github.com/xwang152-jack/n8n-nodes-qwen-image/issues) on GitHub
+- 💬 Join our community discussions
+- 📧 Contact the maintainer
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for details about changes in each version.
+
+## 🏷️ Version 2.0.0
+
+**New in v2.0.0:**
+- ✨ Dual-purpose functionality (n8n node + AI tool)
+- 🔌 OpenAI Functions compatibility
+- 🦜 LangChain integration support
+- 🏗️ Improved architecture with core API separation
+- 📚 Enhanced documentation and examples
+- 🛡️ Better error handling and validation
+- 📦 Modern package structure with proper exports
 
 ## 📋 Table of Contents
 

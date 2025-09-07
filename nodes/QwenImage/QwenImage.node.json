@@ -1,22 +1,23 @@
 {
-	"node": "n8n-nodes-qwen-image.QwenImage",
-	"nodeVersion": "1.0",
-	"codex": {
-		"categories": ["AI"],
-		"subcategories": {
-			"AI": ["Image Generation"]
-		},
-		"resources": {
-			"primaryDocumentation": [
-				{
-					"url": "https://modelscope.cn"
-				}
-			],
-			"credentialDocumentation": [
-				{
-					"url": "https://modelscope.cn"
-				}
-			]
-		}
-	}
+  "node": "n8n-nodes-qwen-image.QwenImage",
+  "nodeVersion": "1.0",
+  "codex": {
+    "categories": ["AI", "Image Generation"],
+    "subcategories": {
+      "AI": ["Image Generation", "Text to Image"]
+    },
+    "resources": {
+      "primaryDocumentation": [
+        {
+          "url": "https://help.aliyun.com/zh/dashscope/developer-reference/tongyi-wanxiang-api"
+        }
+      ],
+      "credentialDocumentation": [
+        {
+          "url": "https://help.aliyun.com/zh/dashscope/developer-reference/activate-dashscope-and-create-an-api-key"
+        }
+      ]
+    },
+    "alias": ["Qwen", "通义万象", "Alibaba AI", "Image Generation"]
+  }
 }

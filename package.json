@@ -1,13 +1,19 @@
 {
   "name": "n8n-nodes-qwen-image",
-  "version": "0.1.1",
-  "description": "n8n community node for Qwen Image generation using ModelScope API",
+  "version": "2.0.0",
+  "description": "Dual-purpose package: n8n node and AI tool for generating images using Qwen Image model from ModelScope. Supports OpenAI Functions, LangChain, and other AI frameworks.",
   "keywords": [
     "n8n-community-node-package",
+    "n8n",
     "qwen",
     "image-generation",
+    "modelscope",
     "ai",
-    "modelscope"
+    "ai-tool",
+    "openai-functions",
+    "langchain",
+    "tool-calling",
+    "dual-purpose"
   ],
   "license": "MIT",
   "homepage": "https://github.com/xwang152-jack/n8n-nodes-qwen-image",
@@ -22,25 +28,32 @@
   "engines": {
     "node": ">=20.15"
   },
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "npx rimraf dist && tsc && gulp build:icons",
     "dev": "tsc --watch",
+    "server": "node server.js",
+    "server:dev": "npm run build && node server.js",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
     "lintfix": "eslint nodes credentials package.json --fix",
     "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "credentials",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "./dist/credentials/ModelScopeApi.credentials"
+      "dist/credentials/ModelScopeApi.credentials.js"
     ],
     "nodes": [
-      "./dist/nodes/QwenImage/QwenImage.node"
+      "dist/nodes/QwenImage/QwenImage.node.js"
     ]
   },
   "devDependencies": {
@@ -59,6 +72,8 @@
     "form-data": "4.0.4"
   },
   "dependencies": {
-    "axios": "^1.11.0"
+    "axios": "^1.11.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   }
 }
