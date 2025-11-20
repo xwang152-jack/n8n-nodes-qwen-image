@@ -183,8 +183,8 @@ export class QwenImage implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 
 		const credentials = await this.getCredentials('modelScopeApi');
-		const apiKey = credentials.apiKey as string;
-		const baseUrl = credentials.baseUrl as string;
+		const apiKey = ((credentials as any).apiKey || (credentials as any).accessToken) as string;
+		const baseUrl = ((credentials as any).baseUrl || 'https://api-inference.modelscope.cn/') as string;
 
 		// 创建API实例
 		const qwenAPI = new QwenImageAPI({ apiKey, baseUrl });

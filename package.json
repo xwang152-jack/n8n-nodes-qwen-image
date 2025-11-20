@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-qwen-image",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Dual-purpose package: n8n node and AI tool for generating images using Qwen Image model from ModelScope. Supports OpenAI Functions, LangChain, and other AI frameworks.",
   "keywords": [
     "n8n-community-node-package",

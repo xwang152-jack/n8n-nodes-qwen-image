@@ -21,7 +21,7 @@ export class QwenImageAPI {
 
   private validateConfig(): void {
     if (!this.config.apiKey || this.config.apiKey.trim() === '') {
-      throw new Error('API Key is required');
+      throw new Error('ModelScope Access Token is required');
     }
     if (!this.config.baseUrl || this.config.baseUrl.trim() === '') {
       throw new Error('Base URL is required');
