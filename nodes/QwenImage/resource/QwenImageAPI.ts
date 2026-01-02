@@ -54,7 +54,7 @@ export class QwenImageAPI {
    */
   private async submitTask(params: ImageGenerationParams): Promise<string> {
     const requestBody: any = {
-      model: 'Qwen/Qwen-Image',
+      model: 'Qwen/Qwen-Image-2512',
       prompt: params.prompt,
     };
 
